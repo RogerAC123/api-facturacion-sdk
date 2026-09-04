@@ -75,8 +75,10 @@ console.log("Estado:", finalDoc.data.sunat.estado);
 - `getCatalogs()` / `getCatalog(key)`
 
 ### Consulta pública (sin auth — clientes finales)
-- `consultarComprobante(ruc, tipoDoc, serie, numero)`
+- `consultarComprobante(ruc, tipoDoc, serie, numero, filtro)`
 - `consultarComprobantePdf(...)` / `consultarComprobanteXml(...)` → ArrayBuffer
+- `filtro` es **obligatorio** (al menos uno de `total`, `fecha`, `receptor`) —
+  anti-scraping: sin esto la API responde 404 aunque el comprobante exista.
 
 ### Cola
 - `retryDocument(id)` — re-encolar documento fallido

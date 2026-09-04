@@ -65,6 +65,23 @@ export type EnqueueResponse =
 export type QueueStats =
   paths["/api/v1/queues/stats"]["get"]["responses"]["200"]["content"]["application/json"];
 
+/**
+ * Filtro anti-scraping OBLIGATORIO (al menos uno) para la consulta pública de
+ * comprobantes. Sin esto, RUC+tipoDoc+serie+numero (secuenciales y
+ * adivinables) bastarían para extraer datos de cualquier comprobante de la
+ * empresa. Si no mandas ninguno, la API responde 404 aunque el comprobante
+ * exista.
+ *
+ * NOTA: tipado a mano en vez de derivado de `paths[...]` porque el spec de
+ * producción aún no tiene este filtro en las rutas /pdf y /xml (se agregó
+ * del lado de la API pero todavía no se desplegó). Tras el deploy, correr
+ * `npm run gen` y este tipo puede volver a derivarse de `paths[...]`.
+ */
+export type ConsultaFiltro =
+  | { total: number; fecha?: string; receptor?: string }
+  | { total?: number; fecha: string; receptor?: string }
+  | { total?: number; fecha?: string; receptor: string };
+
 export interface FacturacionClientOptions extends ClientOptions {
   /** Base URL de la API (ej: http://localhost:3000) */
   baseUrl: string;
@@ -352,11 +369,12 @@ export class FacturacionClient {
     ruc: string,
     tipoDoc: string,
     serie: string,
-    numero: string
+    numero: string,
+    filtro: ConsultaFiltro
   ) {
     return this.api.GET(
       "/api/v1/public/consultar/{ruc}/{tipoDoc}/{serie}/{numero}",
-      { params: { path: { ruc, tipoDoc, serie, numero } } }
+      { params: { path: { ruc, tipoDoc, serie, numero }, query: filtro } }
     );
   }
 
@@ -365,12 +383,16 @@ export class FacturacionClient {
     ruc: string,
     tipoDoc: string,
     serie: string,
-    numero: string
+    numero: string,
+    filtro: ConsultaFiltro
   ): Promise<ArrayBuffer> {
     const response = await this.api.GET(
       "/api/v1/public/consultar/{ruc}/{tipoDoc}/{serie}/{numero}/pdf",
       {
-        params: { path: { ruc, tipoDoc, serie, numero } },
+        params: {
+          path: { ruc, tipoDoc, serie, numero },
+          query: filtro as never,
+        },
         parseAs: "arrayBuffer",
       }
     );
@@ -383,7 +405,8 @@ export class FacturacionClient {
     ruc: string,
     tipoDoc: string,
     serie: string,
-    numero: string
+    numero: string,
+    filtro: ConsultaFiltro
   ): Promise<ArrayBuffer> {
     const response = await this.api.GET(
       "/api/v1/public/consultar/{ruc}/{tipoDoc}/{serie}/{numero}/xml",
