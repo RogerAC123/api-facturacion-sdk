@@ -1,23 +1,23 @@
-# @facturacion/sdk
+# intifact
 
-Cliente TypeScript auto-generado para la **API de Facturación Electrónica SUNAT** (Perú).
+SDK TypeScript auto-generado para la **API de Facturación Electrónica SUNAT de Intifact** (Perú).
 
 Sigue siempre la versión más reciente de la API: los tipos se regeneran desde el `openapi.json` que la API expone en `/docs/json`.
 
 ## Instalación
 
 ```bash
-npm install @facturacion/sdk
+npm install intifact
 ```
 
 ## Uso básico
 
 ```ts
-import { FacturacionClient } from "@facturacion/sdk";
+import { FacturacionClient } from "intifact";
 
 const fact = new FacturacionClient({
-  baseUrl: "https://tu-api.com",
-  apiKey: process.env.FACTURACION_API_KEY, // opcional
+  baseUrl: "https://api-facturacion.intifact.com",
+  apiKey: process.env.FACTURACION_API_KEY, // tu API key fact_live_/fact_test_
 });
 
 // Enviar factura → 202 (encolada)
@@ -41,31 +41,54 @@ console.log("Estado:", finalDoc.data.sunat.estado);
 
 ### Emisión
 - `sendInvoice(body)` — factura (01) o boleta (03)
+- `computeInvoice(body)` — calcular importes (Modelo B) sin emitir
 - `sendNote(body)` — nota crédito (07) o débito (08)
-- `sendDespatch(body)` — guía remisión (09 - GRE REST)
-- `sendSummary(body)` — resumen diario boletas
+- `computeNote(body)` — calcular importes de nota sin emitir
+- `sendDespatch(body)` — guía remisión remitente (09)
+- `sendDespatchMulti(body)` — varias guías en un request
+- `sendDespatchTransportista(body)` — guía remisión transportista (31)
+- `sendSummary(body)` — resumen diario
 - `sendVoided(body)` — comunicación de baja
+
+### Anulaciones
+- `cancelInvoice(body)` — anular factura
+- `cancelBoleta(body)` — anular boleta
 
 ### Consultas
 - `listDocuments(query?)` — listado paginado con filtros
 - `getDocument(id)` — detalle completo
+- `getNextCorrelativo(query)` — siguiente correlativo de una serie
 - `getTicketStatus(ticket, ruc)` — estado de ticket asíncrono
 
-### Archivos
-- `getInvoiceXml(id)` → ArrayBuffer
-- `getInvoiceCdr(id)` → ArrayBuffer (constancia SUNAT)
-- `getInvoicePdf(id)` → ArrayBuffer
+### Archivos (ArrayBuffer)
+- `getInvoiceXml(id)` / `getInvoiceCdr(id)` / `getInvoicePdf(id)`
+- `getNoteXml(id)` / `getNotePdf(id)`
+- `getDespatchXml(id)` / `getDespatchPdf(id, format?)` — `format`: a4 | ticket80 | ticket58
+
+### Webhooks
+- `createWebhook(body)` / `listWebhooks()` / `getWebhook(id)`
+- `updateWebhook(id, body)` / `deleteWebhook(id)`
+- `listWebhookDeliveries(id)` / `redeliverWebhook(id, deliveryId)`
+- `testWebhook(id)` / `rotateWebhookSecret(id)`
+
+### Catálogos SUNAT
+- `getCatalogs()` / `getCatalog(key)`
+
+### Consulta pública (sin auth — clientes finales)
+- `consultarComprobante(ruc, tipoDoc, serie, numero)`
+- `consultarComprobantePdf(...)` / `consultarComprobanteXml(...)` → ArrayBuffer
 
 ### Cola
 - `retryDocument(id)` — re-encolar documento fallido
 - `getQueueStats()` — estado de BullMQ
 - `waitForDocument(id, opts?)` — polling hasta estado final
 
-### Empresas
-- `listCompanies()`
-- `getCompany(id)`
-- `createCompany(body)`
-- `uploadCertificate(companyId, body)` — sube .p12 en base64
+### Empresas (solo lectura)
+- `listCompanies()` / `getCompany(id)` / `getCompanyLogo(id)`
+
+> Crear empresas, subir certificado/logo, gestionar API keys, tenants, audit y
+> planes son operaciones administrativas (requieren `MASTER_API_KEY`) y no se
+> exponen en el SDK — las gestiona el backend (ERP).
 
 ## Regenerar tipos
 
