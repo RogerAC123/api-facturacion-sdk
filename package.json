@@ -1,6 +1,6 @@
 {
   "name": "intifact",
-  "version": "1.1.2",
+  "version": "1.4.0",
   "description": "SDK TypeScript para la API de Facturación Electrónica SUNAT de Intifact",
   "homepage": "https://intifact.com",
   "type": "module",
