@@ -49,6 +49,14 @@ export type CancelInvoiceInput =
 export type CancelBoletaInput =
   paths["/api/v1/boleta/cancel"]["post"]["requestBody"]["content"]["application/json"];
 
+/** Body de POST /api/v1/companies/{id}/branches */
+export type CreateBranchInput =
+  paths["/api/v1/companies/{id}/branches"]["post"]["requestBody"]["content"]["application/json"];
+
+/** Body de PUT /api/v1/companies/{id}/branches/{branchId} */
+export type UpdateBranchInput =
+  paths["/api/v1/companies/{id}/branches/{branchId}"]["put"]["requestBody"]["content"]["application/json"];
+
 /** Body de POST /api/v1/webhooks */
 export type CreateWebhookInput =
   paths["/api/v1/webhooks"]["post"]["requestBody"]["content"]["application/json"];
@@ -280,6 +288,61 @@ export class FacturacionClient {
     });
     if (response.error) throw new Error(`logo not found: ${id}`);
     return response.data as ArrayBuffer;
+  }
+
+  // --- Establecimientos (sucursales) ---
+  //
+  // Sí están en el SDK aunque cuelguen de /companies: no son administración de
+  // la cuenta, son un dato de emisión. El código del establecimiento va al XML
+  // (`cbc:AddressTypeCode`) y decide QUÉ dirección sale impresa en el
+  // comprobante, así que quien emite tiene que poder darlos de alta.
+  //
+  // Alcance: la API resuelve la empresa del path y le aplica `checkCompanyScope`
+  // (fail-closed). Una key con `tenantId` solo ve las empresas de SU cuenta; con
+  // `companyId`, solo esa. Si el id es de otra cuenta, responde 404 — no 403 —
+  // para no revelar que existe.
+
+  /** Lista los establecimientos de una empresa (incluye los desactivados). */
+  async listBranches(companyId: string) {
+    return this.api.GET("/api/v1/companies/{id}/branches", {
+      params: { path: { id: companyId } },
+    });
+  }
+
+  /**
+   * Crea un establecimiento. `codigo` son 4 dígitos y debe coincidir con el que
+   * SUNAT asignó en el portal SOL (Mis Trámites > Establecimientos Anexos);
+   * inventarlo hace que el comprobante salga con un anexo que SUNAT no conoce.
+   * Responde 409 si ese código ya existe en la empresa.
+   */
+  async createBranch(companyId: string, body: CreateBranchInput) {
+    return this.api.POST("/api/v1/companies/{id}/branches", {
+      params: { path: { id: companyId } },
+      body,
+    });
+  }
+
+  /** Actualiza un establecimiento. El `codigo` no se puede cambiar. */
+  async updateBranch(
+    companyId: string,
+    branchId: string,
+    body: UpdateBranchInput
+  ) {
+    return this.api.PUT("/api/v1/companies/{id}/branches/{branchId}", {
+      params: { path: { id: companyId, branchId } },
+      body,
+    });
+  }
+
+  /**
+   * Desactiva un establecimiento (soft-delete: `isActive=false`). No se borra
+   * porque puede haber documentos emitidos desde ahí. El matriz "0000" no se
+   * puede desactivar (409): es el default de toda emisión sin sucursal.
+   */
+  async deactivateBranch(companyId: string, branchId: string) {
+    return this.api.DELETE("/api/v1/companies/{id}/branches/{branchId}", {
+      params: { path: { id: companyId, branchId } },
+    });
   }
 
   // Nota: crear empresas, subir certificado/logo, gestionar API keys, tenants,

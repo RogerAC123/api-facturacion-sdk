@@ -98,6 +98,18 @@ El código que va en `detalle[].codProdSunat`. SUNAT lo exige desde el
 ### Empresas (solo lectura)
 - `listCompanies()` / `getCompany(id)` / `getCompanyLogo(id)`
 
+### Establecimientos (sucursales)
+El `codigo` (4 dígitos) va al XML como `cbc:AddressTypeCode` y decide qué
+dirección sale impresa en el comprobante. Debe coincidir con el que SUNAT
+asignó en el portal SOL (Mis Trámites > Establecimientos Anexos).
+- `listBranches(companyId)` / `createBranch(companyId, body)`
+- `updateBranch(companyId, branchId, body)` — el `codigo` no se cambia
+- `deactivateBranch(companyId, branchId)` — soft-delete; el matriz `"0000"` no
+  se puede desactivar (409)
+
+> Alcance: una key con `tenantId` solo opera las empresas de su cuenta; con
+> `companyId`, solo esa. Una empresa ajena responde **404**, no 403.
+
 > Crear empresas, subir certificado/logo, gestionar API keys, tenants, audit y
 > planes son operaciones administrativas (requieren `MASTER_API_KEY`) y no se
 > exponen en el SDK — las gestiona el backend (ERP).
