@@ -74,6 +74,16 @@ console.log("Estado:", finalDoc.data.sunat.estado);
 ### Catálogos SUNAT
 - `getCatalogs()` / `getCatalog(key)`
 
+### Código de Producto SUNAT (Catálogo 25 / UNSPSC)
+El código que va en `detalle[].codProdSunat`. SUNAT lo exige desde el
+**2027-01-01**: si falta o es inválido rechaza con error `3496`. Son 8 dígitos.
+- `buscarProductoSunat(q, { nivel?, limit? })` — texto libre (ignora tildes,
+  exige todos los términos) o prefijo de código si `q` son dígitos. Devuelve
+  primero las `CLASE`: SUNAT pide llegar como mínimo a ese nivel.
+- `getProductoSunat(codigo)` — un código puntual (404 si no existe).
+- `exportarProductosSunat()` — el catálogo completo (52.840 códigos) si
+  prefieres tu propia copia local. Limitado a **5 req/min**: bájalo una vez.
+
 ### Consulta pública (sin auth — clientes finales)
 - `consultarComprobante(ruc, tipoDoc, serie, numero, filtro)`
 - `consultarComprobantePdf(...)` / `consultarComprobanteXml(...)` → ArrayBuffer

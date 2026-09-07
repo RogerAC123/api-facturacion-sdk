@@ -362,6 +362,50 @@ export class FacturacionClient {
     });
   }
 
+  // --- Código de Producto SUNAT (Catálogo 25 / UNSPSC) ---
+  //
+  // Es el código que va en `detalle[].codProdSunat`. SUNAT lo exige desde el
+  // 2027-01-01 y rechaza con error 3496 si falta o no es válido.
+
+  /**
+   * Busca un Código de Producto SUNAT por texto libre o por prefijo de código.
+   *
+   * Ignora tildes y mayúsculas, y exige que aparezcan todos los términos.
+   * Devuelve primero las CLASE: SUNAT pide llegar como mínimo a ese nivel y es
+   * la respuesta correcta en la mayoría de casos.
+   *
+   * ```ts
+   * const { data } = await sdk.buscarProductoSunat("aceite motor");
+   * data?.data.items[0].codigo; // "15121501"
+   * ```
+   */
+  async buscarProductoSunat(
+    q: string,
+    opciones?: { nivel?: "CLASE" | "PRODUCTO"; limit?: number }
+  ) {
+    return this.api.GET("/api/v1/catalogs/producto/search", {
+      params: { query: { q, ...opciones } },
+    });
+  }
+
+  /** Obtiene un Código de Producto SUNAT puntual (404 si no existe). */
+  async getProductoSunat(codigo: string) {
+    return this.api.GET("/api/v1/catalogs/producto/{codigo}", {
+      params: { path: { codigo } },
+    });
+  }
+
+  /**
+   * Descarga el Catálogo 25 COMPLETO (52.840 códigos, ~700 KB comprimidos).
+   *
+   * Para quien prefiere su propia copia local en vez de consultar la API en
+   * cada búsqueda. La data está congelada desde 2008: bájala una vez y guárdala.
+   * Está limitado a 5 peticiones por minuto — no lo llames en cada arranque.
+   */
+  async exportarProductosSunat() {
+    return this.api.GET("/api/v1/catalogs/producto/export", {});
+  }
+
   // --- Consulta pública (sin auth — para clientes finales del emisor) ---
 
   /** Consulta pública de un comprobante por RUC/tipo/serie/número (JSON). */
