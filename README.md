@@ -65,12 +65,6 @@ console.log("Estado:", finalDoc.data.sunat.estado);
 - `getNoteXml(id)` / `getNotePdf(id)`
 - `getDespatchXml(id)` / `getDespatchPdf(id, format?)` — `format`: a4 | ticket80 | ticket58
 
-### Webhooks
-- `createWebhook(body)` / `listWebhooks()` / `getWebhook(id)`
-- `updateWebhook(id, body)` / `deleteWebhook(id)`
-- `listWebhookDeliveries(id)` / `redeliverWebhook(id, deliveryId)`
-- `testWebhook(id)` / `rotateWebhookSecret(id)`
-
 ### Catálogos SUNAT
 - `getCatalogs()` / `getCatalog(key)`
 
@@ -98,21 +92,31 @@ El código que va en `detalle[].codProdSunat`. SUNAT lo exige desde el
 ### Empresas (solo lectura)
 - `listCompanies()` / `getCompany(id)` / `getCompanyLogo(id)`
 
-### Establecimientos (sucursales)
+### Establecimientos (solo lectura)
 El `codigo` (4 dígitos) va al XML como `cbc:AddressTypeCode` y decide qué
-dirección sale impresa en el comprobante. Debe coincidir con el que SUNAT
-asignó en el portal SOL (Mis Trámites > Establecimientos Anexos).
-- `listBranches(companyId)` / `createBranch(companyId, body)`
-- `updateBranch(companyId, branchId, body)` — el `codigo` no se cambia
-- `deactivateBranch(companyId, branchId)` — soft-delete; el matriz `"0000"` no
-  se puede desactivar (409)
+dirección sale impresa en el comprobante.
+- `listBranches(companyId)` — para saber qué `establecimientoCodigo` mandar
 
-> Alcance: una key con `tenantId` solo opera las empresas de su cuenta; con
+> Alcance: una key con `tenantId` solo ve las empresas de su cuenta; con
 > `companyId`, solo esa. Una empresa ajena responde **404**, no 403.
 
-> Crear empresas, subir certificado/logo, gestionar API keys, tenants, audit y
-> planes son operaciones administrativas (requieren `MASTER_API_KEY`) y no se
-> exponen en el SDK — las gestiona el backend (ERP).
+> La administración de la cuenta —crear o editar empresas, credenciales SOL/GRE,
+> certificado, logo, registrar establecimientos y **webhooks**— se hace desde el
+> panel de Intifact, no con la API key (la API responde `403`). Así una key
+> filtrada solo puede emitir y consultar.
+
+## Migrar de 1.x a 2.0
+
+La 2.0 quita los métodos que la API ya no acepta con una API key:
+
+- Webhooks: `createWebhook`, `listWebhooks`, `getWebhook`, `updateWebhook`,
+  `deleteWebhook`, `listWebhookDeliveries`, `redeliverWebhook`, `testWebhook`,
+  `rotateWebhookSecret` y los tipos `CreateWebhookInput` / `UpdateWebhookInput`.
+- Establecimientos: `createBranch`, `updateBranch`, `deactivateBranch` y los
+  tipos `CreateBranchInput` / `UpdateBranchInput` (`listBranches` se queda).
+
+Todo eso se hace ahora desde el portal de Intifact. Del lado de tu código, los
+webhooks solo se reciben y se verifica su firma con el secret que da el portal.
 
 ## Regenerar tipos
 

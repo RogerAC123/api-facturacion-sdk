@@ -49,22 +49,6 @@ export type CancelInvoiceInput =
 export type CancelBoletaInput =
   paths["/api/v1/boleta/cancel"]["post"]["requestBody"]["content"]["application/json"];
 
-/** Body de POST /api/v1/companies/{id}/branches */
-export type CreateBranchInput =
-  paths["/api/v1/companies/{id}/branches"]["post"]["requestBody"]["content"]["application/json"];
-
-/** Body de PUT /api/v1/companies/{id}/branches/{branchId} */
-export type UpdateBranchInput =
-  paths["/api/v1/companies/{id}/branches/{branchId}"]["put"]["requestBody"]["content"]["application/json"];
-
-/** Body de POST /api/v1/webhooks */
-export type CreateWebhookInput =
-  paths["/api/v1/webhooks"]["post"]["requestBody"]["content"]["application/json"];
-
-/** Body de PUT /api/v1/webhooks/{id} */
-export type UpdateWebhookInput =
-  paths["/api/v1/webhooks/{id}"]["put"]["requestBody"]["content"]["application/json"];
-
 /** Respuesta 202 de cualquier /send (documento encolado) */
 export type EnqueueResponse =
   paths["/api/v1/invoice/send"]["post"]["responses"]["202"]["content"]["application/json"];
@@ -290,17 +274,14 @@ export class FacturacionClient {
     return response.data as ArrayBuffer;
   }
 
-  // --- Establecimientos (sucursales) ---
+  // --- Establecimientos (sucursales) — solo lectura ---
   //
-  // Sí están en el SDK aunque cuelguen de /companies: no son administración de
-  // la cuenta, son un dato de emisión. El código del establecimiento va al XML
-  // (`cbc:AddressTypeCode`) y decide QUÉ dirección sale impresa en el
-  // comprobante, así que quien emite tiene que poder darlos de alta.
+  // Tu código los necesita para saber qué `establecimientoCodigo` mandar al
+  // emitir (va al XML como `cbc:AddressTypeCode` y decide qué dirección sale
+  // impresa). Registrarlos, editarlos y desactivarlos se hace desde el panel.
   //
-  // Alcance: la API resuelve la empresa del path y le aplica `checkCompanyScope`
-  // (fail-closed). Una key con `tenantId` solo ve las empresas de SU cuenta; con
-  // `companyId`, solo esa. Si el id es de otra cuenta, responde 404 — no 403 —
-  // para no revelar que existe.
+  // Alcance: una key con `tenantId` solo ve las empresas de SU cuenta; con
+  // `companyId`, solo esa. Si el id es de otra cuenta, responde 404.
 
   /** Lista los establecimientos de una empresa (incluye los desactivados). */
   async listBranches(companyId: string) {
@@ -309,107 +290,10 @@ export class FacturacionClient {
     });
   }
 
-  /**
-   * Crea un establecimiento. `codigo` son 4 dígitos y debe coincidir con el que
-   * SUNAT asignó en el portal SOL (Mis Trámites > Establecimientos Anexos);
-   * inventarlo hace que el comprobante salga con un anexo que SUNAT no conoce.
-   * Responde 409 si ese código ya existe en la empresa.
-   */
-  async createBranch(companyId: string, body: CreateBranchInput) {
-    return this.api.POST("/api/v1/companies/{id}/branches", {
-      params: { path: { id: companyId } },
-      body,
-    });
-  }
-
-  /** Actualiza un establecimiento. El `codigo` no se puede cambiar. */
-  async updateBranch(
-    companyId: string,
-    branchId: string,
-    body: UpdateBranchInput
-  ) {
-    return this.api.PUT("/api/v1/companies/{id}/branches/{branchId}", {
-      params: { path: { id: companyId, branchId } },
-      body,
-    });
-  }
-
-  /**
-   * Desactiva un establecimiento (soft-delete: `isActive=false`). No se borra
-   * porque puede haber documentos emitidos desde ahí. El matriz "0000" no se
-   * puede desactivar (409): es el default de toda emisión sin sucursal.
-   */
-  async deactivateBranch(companyId: string, branchId: string) {
-    return this.api.DELETE("/api/v1/companies/{id}/branches/{branchId}", {
-      params: { path: { id: companyId, branchId } },
-    });
-  }
-
-  // Nota: crear empresas, subir certificado/logo, gestionar API keys, tenants,
-  // audit y planes son operaciones administrativas (solo MASTER_API_KEY) y NO se
-  // exponen en el SDK — el backend (ERP) las llama directo. Ver lib/openapi-docs.ts
-  // en la API (endpoints ocultos del spec por ADMIN_ONLY_TAGS).
-
-  // --- Webhooks ---
-
-  /** Crea una suscripción a webhooks. El secret se devuelve UNA sola vez. */
-  async createWebhook(body: CreateWebhookInput) {
-    return this.api.POST("/api/v1/webhooks", { body });
-  }
-
-  /** Lista las suscripciones de webhooks. */
-  async listWebhooks() {
-    return this.api.GET("/api/v1/webhooks", {});
-  }
-
-  /** Detalle de una suscripción de webhook. */
-  async getWebhook(id: string) {
-    return this.api.GET("/api/v1/webhooks/{id}", { params: { path: { id } } });
-  }
-
-  /** Actualiza una suscripción de webhook (url, eventos, isActive). */
-  async updateWebhook(id: string, body: UpdateWebhookInput) {
-    return this.api.PUT("/api/v1/webhooks/{id}", {
-      params: { path: { id } },
-      body,
-    });
-  }
-
-  /** Elimina una suscripción de webhook. */
-  async deleteWebhook(id: string) {
-    return this.api.DELETE("/api/v1/webhooks/{id}", {
-      params: { path: { id } },
-    });
-  }
-
-  /** Lista los intentos de entrega de un webhook. */
-  async listWebhookDeliveries(id: string) {
-    return this.api.GET("/api/v1/webhooks/{id}/deliveries", {
-      params: { path: { id } },
-    });
-  }
-
-  /** Reintenta manualmente una entrega de webhook. */
-  async redeliverWebhook(id: string, deliveryId: string) {
-    return this.api.POST(
-      "/api/v1/webhooks/{id}/deliveries/{deliveryId}/redeliver",
-      { params: { path: { id, deliveryId } } }
-    );
-  }
-
-  /** Dispara un evento de prueba (webhook.test) para verificar conectividad. */
-  async testWebhook(id: string) {
-    return this.api.POST("/api/v1/webhooks/{id}/test", {
-      params: { path: { id } },
-    });
-  }
-
-  /** Rota el secret HMAC de un webhook. El nuevo secret se devuelve una sola vez. */
-  async rotateWebhookSecret(id: string) {
-    return this.api.POST("/api/v1/webhooks/{id}/rotate-secret", {
-      params: { path: { id } },
-    });
-  }
+  // Nota: la ADMINISTRACIÓN de la cuenta —crear/editar empresas, credenciales
+  // SOL/GRE, certificado, logo, registrar/editar/desactivar establecimientos y
+  // webhooks— se hace desde el panel de Intifact, no con la API key: la API
+  // responde 403 a una key de cliente. Por eso no está en el SDK.
 
   // --- Catálogos SUNAT (referencia) ---
 
