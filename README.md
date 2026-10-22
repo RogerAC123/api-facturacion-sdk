@@ -58,6 +58,7 @@ console.log("Estado:", finalDoc.data.sunat.estado);
 - `listDocuments(query?)` — listado paginado con filtros
 - `getDocument(id)` — detalle completo
 - `getNextCorrelativo(query)` — siguiente correlativo de una serie
+- `getSummary(id)` — estado de un envío RC/RA (el `id` que devuelven `sendSummary`, `sendVoided`, `cancelInvoice` y `cancelBoleta`)
 - `getTicketStatus(ticket, ruc)` — estado de ticket asíncrono
 
 ### Archivos (ArrayBuffer)

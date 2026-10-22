@@ -170,6 +170,17 @@ export class FacturacionClient {
     return this.api.POST("/api/v1/voided/send", { body });
   }
 
+  /**
+   * Estado de un envío RC/RA: el `id` que devuelven sendSummary, sendVoided,
+   * cancelInvoice y cancelBoleta (es del envío, no de un documento). Trae el
+   * ticket, el código/motivo de SUNAT y el estado de cada comprobante incluido.
+   */
+  async getSummary(id: string) {
+    return this.api.GET("/api/v1/summaries/{id}", {
+      params: { path: { id } },
+    });
+  }
+
   /** Consulta el estado de un ticket asíncrono (sendSummary). */
   async getTicketStatus(ticket: string, ruc: string) {
     return this.api.GET("/api/v1/ticket/{ticket}/status", {
