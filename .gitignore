@@ -4,6 +4,5 @@ dist/
 .env
 .env.local
 openapi.json
-src/types.ts
 .DS_Store
 .tsbuildinfo

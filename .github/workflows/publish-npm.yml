@@ -16,11 +16,28 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          # Node 24 trae npm 11: Trusted Publishing (sin token) pide npm >= 11.5.1.
+          node-version: "24"
           registry-url: "https://registry.npmjs.org"
       - name: Instalar dependencias
         run: npm ci
       - name: Compilar
+        # src/types.ts va en el repo (generado con `npm run gen` contra la API).
         run: npm run build
+      - name: Revisar versión
+        id: version
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          if [ "${GITHUB_REF_TYPE}" = "tag" ] && [ "${GITHUB_REF_NAME}" != "v${VERSION}" ]; then
+            echo "El tag ${GITHUB_REF_NAME} no coincide con package.json (${VERSION})" >&2
+            exit 1
+          fi
+          if npm view "intifact@${VERSION}" version >/dev/null 2>&1; then
+            echo "intifact@${VERSION} ya está en npm: no se vuelve a publicar."
+            echo "publicar=no" >> "$GITHUB_OUTPUT"
+          else
+            echo "publicar=si" >> "$GITHUB_OUTPUT"
+          fi
       - name: Publicar en npm
-        run: npm publish --provenance
+        if: steps.version.outputs.publicar == 'si'
+        run: npm publish --provenance --access public
