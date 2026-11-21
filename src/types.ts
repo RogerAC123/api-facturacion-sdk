@@ -4828,6 +4828,8 @@ export interface operations {
                     web?: string;
                     solUser?: string;
                     solPassword?: string;
+                    greClientId?: string;
+                    greClientSecret?: string;
                     certificado: {
                         /** @description Base64 del .p12/.pfx */
                         content: string;
